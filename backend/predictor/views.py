@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from openai import OpenAI
 import RateMyProfessor_Database_APIs
 
-
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def get_professor_info(professor_id: int):
@@ -28,18 +27,20 @@ def health_check(request):
 def explain_prediction(request):
     """
     Input: {
-      "course": "CS447",
+      "course": "CS1530",
       "predicted_grade": "B+",
       "factors": [
         "Strong GPA in CS",
         "Heavy exam weighting",
         "Professor tagged as tough grader"
-      ]
+      ],
+      "professor_id": 2936635
     }
     """
     course = request.data.get("course")
     grade = request.data.get("predicted_grade")
     factors = request.data.get("factors", [])
+    professor_id = request.data.get("professor_id")
 
     # Build explanation with OpenAI
     prompt = f"""
@@ -56,8 +57,10 @@ def explain_prediction(request):
     )
     explanation = completion.choices[0].message.content.strip()
 
-    # Fetch Pitt professor info (hardcoded ID for now)
-    professor_info = get_professor_info(2936635)
+    # Fetch professor info if professor_id is provided
+    professor_info = None
+    if professor_id:
+        professor_info = get_professor_info(professor_id)
 
     return Response({
         "explanation": explanation,
