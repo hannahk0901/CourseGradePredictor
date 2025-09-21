@@ -185,3 +185,83 @@ body {
 .strength-bar:nth-child(2) { animation-delay: 1s; }
 .strength-bar:nth-child(3) { animation-delay: 1.5s; }
 .strength-bar:nth-child(4) { animation-delay: 2s; }
+
+/* 🔹 Advice Section */
+.advice-section {
+  margin-top: 3rem;
+}
+
+.advice-section h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  background: linear-gradient(90deg, #00f5d4, #9b5de5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+/* 🔹 Individual Advice Card */
+.advice-card {
+  background: linear-gradient(135deg, #141414, #1c1c1c);
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 1.5rem 1.8rem;
+  line-height: 1.75;
+  font-size: 1rem;
+  color: #e5e5e5;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.55);
+  margin-bottom: 1.5rem;
+  animation: fadeUp 0.8s ease forwards;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.advice-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 18px rgba(0, 245, 212, 0.25);
+}
+
+/* 🔹 Section Labels */
+.advice-label {
+  display: block;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;  /* 🔹 Separate label from text */
+  background: linear-gradient(90deg, #00f5d4, #9b5de5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 🔹 Square dot loader */
+.loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 150px; /* matches grade area height */
+}
+
+.dot-square {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.dot-square div {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(90deg, #00f5d4, #9b5de5);
+  border-radius: 50%;
+  animation: square-spin 1.2s linear infinite;
+}
+
+.dot-square div:nth-child(1) { top: 0; left: 0; animation-delay: 0s; }
+.dot-square div:nth-child(2) { top: 0; right: 0; animation-delay: 0.3s; }
+.dot-square div:nth-child(3) { bottom: 0; right: 0; animation-delay: 0.6s; }
+.dot-square div:nth-child(4) { bottom: 0; left: 0; animation-delay: 0.9s; }
+
+@keyframes square-spin {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.5); opacity: 0.6; }
+}

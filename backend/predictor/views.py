@@ -450,7 +450,7 @@ Return JSON only with exactly these fields.
     if total > 0:
         weights = {k: (v * 100.0 / total) for k, v in weights.items()}
 
-    # -------- Build response ----------
+        # -------- Build response ----------
     # inside predict_grade, near the end before resp = { ... }
 
     course_name = None
@@ -462,6 +462,46 @@ Return JSON only with exactly these fields.
                 course_name = str(row.iloc[0]["name"])
     except Exception as e:
         course_name = None
+
+        # -------- AI-generated advice ----------
+    advice_text = None
+    try:
+        advice_prompt = f"""
+A student is considering "{course_name}".
+Predicted grade: {final.get("final_score")} ±{final.get("margin_of_error")}.
+Strengths: {json.dumps(strengths.get("category_strengths"), indent=2)}.
+Syllabus weights: {weights}.
+Professor info: {rmp_pack}.
+
+Write advice in 3 sections. Each section should be at least 5–6 sentences long:
+
+Areas You Will Do Well At:
+- Thoroughly explain which categories (projects, assignments, exams, participation) the student is strong in and why.
+- Tie this to syllabus weights and professor information if relevant.
+- Provide detailed encouragement and context.
+
+Areas You May Struggle With:
+- Thoroughly explain the weaker categories and why they might be an issue.
+- Include risks such as exam weight or professor difficulty.
+- Provide concrete strategies for how the student can improve.
+
+Final Verdict:
+- Begin the section by having a verdict sentence saying explicitely whether your recommend the student to take this class or not.
+- Give a detailed overall assessment of the student’s readiness for the course.
+- Provide practical preparation advice.
+
+Do NOT use markdown (no ###). Just plain text section labels followed by paragraphs.
+
+
+"""
+        advice_completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": advice_prompt}],
+            max_tokens=600,
+        )
+        advice_text = advice_completion.choices[0].message.content.strip()
+    except Exception as e:
+        advice_text = f"(Advice unavailable due to error: {e})"
 
     # then in resp dict:
     resp = {
@@ -477,7 +517,7 @@ Return JSON only with exactly these fields.
         "exams": round(weights["exams"], 2),
         "participation": round(weights["participation"], 2),
         "rmp": rmp_pack,
+        "advice": advice_text,   # 🔹 new field
     }
-
 
     return Response(resp)
