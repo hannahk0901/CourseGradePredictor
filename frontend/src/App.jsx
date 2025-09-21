@@ -70,7 +70,6 @@ function App() {
       );
       console.log("Prediction API response:", res.data);
 
-      // ✅ store the whole response, not just res.data.prediction
       setPrediction(res.data);
     } catch (err) {
       console.error("Prediction error:", err.response?.data || err.message);
@@ -151,22 +150,9 @@ function App() {
           {result.professor && !result.professor.error && (
             <div>
               <h3>Professor Info</h3>
-              <p>
-                <b>Name:</b> {result.professor.name}
-              </p>
-              <p>
-                <b>Avg Rating:</b> {result.professor.avg_rating}
-              </p>
-              <p>
-                <b>Avg Difficulty:</b> {result.professor.avg_difficulty}
-              </p>
-              <p>
-                <b>Number of Ratings:</b> {result.professor.num_ratings}
-              </p>
-              <p>
-                <b>Would Take Again %:</b>{" "}
-                {result.professor.would_take_again_percent}
-              </p>
+              <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.9rem" }}>
+                {JSON.stringify(result.professor, null, 2)}
+              </pre>
             </div>
           )}
         </div>
@@ -211,7 +197,7 @@ function App() {
           </p>
           <p>
             <b>Range:</b>{" "}
-            {prediction.range
+            {Array.isArray(prediction.range)
               ? `${prediction.range[0]} – ${prediction.range[1]}`
               : "N/A"}
           </p>
@@ -227,6 +213,8 @@ function App() {
                 )
               )}
           </ul>
+
+    
         </div>
       )}
 
@@ -255,7 +243,7 @@ function App() {
               <p>
                 <b>Weight:</b> {cat.weight || 0}% |{" "}
                 <b>Percent:</b>{" "}
-                {cat.percent !== null
+                {typeof cat.percent === "number"
                   ? `${cat.percent.toFixed(2)}%`
                   : "No grades yet"}
               </p>
@@ -293,7 +281,7 @@ function App() {
                   <p>
                     <b>Weight:</b> {cat.weight || 0}% |{" "}
                     <b>Percent:</b>{" "}
-                    {cat.percent !== null
+                    {typeof cat.percent === "number"
                       ? `${cat.percent.toFixed(2)}%`
                       : "No grades yet"}
                   </p>
