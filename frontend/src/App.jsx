@@ -3,22 +3,29 @@ import axios from "axios";
 
 function App() {
   const [status, setStatus] = useState("");
+
+  // --- Existing state for /api/explain ---
   const [course, setCourse] = useState("");
   const [grade, setGrade] = useState("");
   const [factors, setFactors] = useState("");
   const [professorId, setProfessorId] = useState("");
   const [result, setResult] = useState(null);
 
-  const [courseId, setCourseId] = useState(""); // just numbers now
+  // --- Canvas ---
+  const [courseId, setCourseId] = useState(""); // single course
   const [canvasGrades, setCanvasGrades] = useState(null);
-
   const [allCanvasData, setAllCanvasData] = useState(null);
-
-  // new loading states
   const [loadingCourse, setLoadingCourse] = useState(false);
   const [loadingAllCourses, setLoadingAllCourses] = useState(false);
 
-  // Health check on mount
+  // --- New state for /api/predict-grade ---
+  const [predictCourseId, setPredictCourseId] = useState("");
+  const [predictProfessorId, setPredictProfessorId] = useState("");
+  const [syllabus, setSyllabus] = useState("");
+  const [prediction, setPrediction] = useState(null);
+  const [loadingPrediction, setLoadingPrediction] = useState(false);
+
+  // Health check
   useEffect(() => {
     axios
       .get("http://127.0.0.1:8000/api/health/")
@@ -26,6 +33,7 @@ function App() {
       .catch(() => setStatus("error"));
   }, []);
 
+  // --- Existing explain_prediction ---
   const handlePredictSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -41,6 +49,37 @@ function App() {
     }
   };
 
+  // --- New predict_grade ---
+  const handleFinalPrediction = async (e) => {
+    e.preventDefault();
+    setLoadingPrediction(true);
+    setPrediction(null);
+
+    try {
+      const payload = {
+        syllabus_text: syllabus,
+        student_factors: ["Strong GPA", "Good at projects"], // placeholder
+      };
+      if (predictCourseId) payload.canvas_course_id = parseInt(predictCourseId);
+      if (predictProfessorId)
+        payload.professor_id = parseInt(predictProfessorId);
+
+      const res = await axios.post(
+        "http://127.0.0.1:8000/api/predict-grade/",
+        payload
+      );
+      console.log("Prediction API response:", res.data);
+
+      // ✅ store the whole response, not just res.data.prediction
+      setPrediction(res.data);
+    } catch (err) {
+      console.error("Prediction error:", err.response?.data || err.message);
+    } finally {
+      setLoadingPrediction(false);
+    }
+  };
+
+  // --- Canvas (single course + all courses) ---
   const handleCanvasSubmit = async (e) => {
     e.preventDefault();
     setLoadingCourse(true);
@@ -75,8 +114,8 @@ function App() {
       <h1>Grade Predictor</h1>
       <p>Backend status: {status}</p>
 
-      {/* Prediction Form */}
-      <h2>Prediction with Professor Info</h2>
+      {/* ===================== EXPLAIN PREDICTION ===================== */}
+      <h2>Explain Prediction (demo)</h2>
       <form onSubmit={handlePredictSubmit} style={{ marginBottom: "2rem" }}>
         <input
           type="text"
@@ -102,7 +141,7 @@ function App() {
           value={professorId}
           onChange={(e) => setProfessorId(e.target.value)}
         />
-        <button type="submit">Predict</button>
+        <button type="submit">Explain</button>
       </form>
 
       {result && (
@@ -133,7 +172,65 @@ function App() {
         </div>
       )}
 
-      {/* Canvas Grades by Course ID */}
+      {/* ===================== FINAL PREDICTION ===================== */}
+      <h2>Final Grade Prediction</h2>
+      <form onSubmit={handleFinalPrediction} style={{ marginBottom: "2rem" }}>
+        <input
+          type="text"
+          placeholder="Canvas Course ID"
+          value={predictCourseId}
+          onChange={(e) => setPredictCourseId(e.target.value)}
+          required
+        />
+        <input
+          type="text"
+          placeholder="Professor ID"
+          value={predictProfessorId}
+          onChange={(e) => setPredictProfessorId(e.target.value)}
+        />
+        <textarea
+          placeholder="Paste syllabus text..."
+          rows={4}
+          value={syllabus}
+          onChange={(e) => setSyllabus(e.target.value)}
+          required
+        />
+        <button type="submit" disabled={loadingPrediction}>
+          {loadingPrediction ? "Calculating..." : "Predict Grade"}
+        </button>
+      </form>
+
+      {prediction && (
+        <div>
+          <h3>Prediction Results</h3>
+          <p>
+            <b>Final Score:</b> {prediction.final_score ?? "N/A"}
+          </p>
+          <p>
+            <b>Margin of Error:</b> ±{prediction.margin_of_error ?? "N/A"}
+          </p>
+          <p>
+            <b>Range:</b>{" "}
+            {prediction.range
+              ? `${prediction.range[0]} – ${prediction.range[1]}`
+              : "N/A"}
+          </p>
+
+          <h4>Category Strengths</h4>
+          <ul>
+            {prediction.category_strengths &&
+              Object.entries(prediction.category_strengths).map(
+                ([key, value]) => (
+                  <li key={key}>
+                    {key}: {value}
+                  </li>
+                )
+              )}
+          </ul>
+        </div>
+      )}
+
+      {/* ===================== CANVAS: SINGLE COURSE ===================== */}
       <h2>View Canvas Grades (Single Course)</h2>
       <form onSubmit={handleCanvasSubmit}>
         <input
@@ -146,7 +243,6 @@ function App() {
       </form>
 
       {loadingCourse && <p>Loading course grades...</p>}
-
       {canvasGrades && (
         <div style={{ marginTop: "2rem" }}>
           <h3>
@@ -163,35 +259,18 @@ function App() {
                   ? `${cat.percent.toFixed(2)}%`
                   : "No grades yet"}
               </p>
-              {cat.assignments.length > 0 ? (
-                <ul>
-                  {cat.assignments.map((a) => (
-                    <li key={a.id}>
-                      <a href={a.html_url} target="_blank" rel="noreferrer">
-                        {a.name}
-                      </a>{" "}
-                      - {a.score ?? "N/A"} / {a.points_possible}
-                      {a.late && " (Late)"}
-                      {a.excused && " (Excused)"}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No assignments yet.</p>
-              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* Fetch All Courses */}
+      {/* ===================== CANVAS: ALL COURSES ===================== */}
       <h2>All Canvas Data</h2>
       <button onClick={handleFetchAllCourses}>
         Show User’s Complete Canvas Data
       </button>
 
       {loadingAllCourses && <p>Loading all courses...</p>}
-
       {allCanvasData &&
         allCanvasData.map((course, idx) => (
           <div key={idx} style={{ marginTop: "2rem" }}>
@@ -200,7 +279,6 @@ function App() {
               {course.course?.course_code || course.course?.id})
             </h3>
 
-            {/* 🔑 Show final grade/score if available */}
             {course.course?.final_grade && (
               <p>
                 <b>Final Grade:</b> {course.course.final_grade} (
@@ -208,7 +286,7 @@ function App() {
               </p>
             )}
 
-            {course.categories?.length > 0 ? (
+            {course.categories &&
               course.categories.map((cat, i) => (
                 <div key={i} style={{ marginBottom: "1rem" }}>
                   <h4>{cat.category}</h4>
@@ -219,16 +297,22 @@ function App() {
                       ? `${cat.percent.toFixed(2)}%`
                       : "No grades yet"}
                   </p>
-                  {cat.assignments.length > 0 ? (
+
+                  {cat.assignments && cat.assignments.length > 0 ? (
                     <ul>
                       {cat.assignments.map((a) => (
                         <li key={a.id}>
-                          <a href={a.html_url} target="_blank" rel="noreferrer">
+                          <a
+                            href={a.html_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             {a.name}
                           </a>{" "}
-                          - {a.score ?? "N/A"} / {a.points_possible}
-                          {a.late && " (Late)"}
-                          {a.excused && " (Excused)"}
+                          - {a.score !== null ? a.score : "N/A"} /{" "}
+                          {a.points_possible}{" "}
+                          {a.late ? "(Late)" : ""}
+                          {a.excused ? " (Excused)" : ""}
                         </li>
                       ))}
                     </ul>
@@ -236,10 +320,7 @@ function App() {
                     <p>No assignments yet.</p>
                   )}
                 </div>
-              ))
-            ) : (
-              <p>No categories/assignments found for this course.</p>
-            )}
+              ))}
           </div>
         ))}
     </div>

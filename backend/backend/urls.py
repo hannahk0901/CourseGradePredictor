@@ -6,6 +6,7 @@ from predictor.views import (
     get_canvas_courses,
     get_canvas_category_grades,
     get_canvas_all_data,   # NEW
+    predict_grade,
 )
 
 urlpatterns = [
@@ -20,4 +21,5 @@ urlpatterns = [
     path("api/canvas/<int:course_id>/grades/", get_canvas_category_grades),
     path("api/canvas/all-data", get_canvas_all_data),
     path("api/canvas/all-data/", get_canvas_all_data),
+    path("api/predict-grade/", predict_grade),
 ]
